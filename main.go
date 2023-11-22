@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net"
 	"net/http"
-	"strings"
 	"sync"
 
 	"golang.org/x/net/websocket"
@@ -56,10 +56,13 @@ func main() {
 	http.Handle("/", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`
 
-		var webSocket = new WebSocket("ws://192.168.0.33:8080/ws", "hi"); 
+		var webSocket = new WebSocket("ws://localhost:8080/ws", "hi"); 
 		webSocket.onmessage = ev => {console.log(ev.data)}; 
-		setTimeout(() => {webSocket.send("test")}, 300)
-	
+
+		// timeout для установки соединения 
+		setTimeout(() => {webSocket.send("test")}, 300);
+
+		webSocket.send("test")
 	`))
 	}))
 
@@ -71,14 +74,20 @@ func main() {
 }
 
 func BigIntSender(ws *websocket.Conn, s *Singelton) {
+	defer ws.Close()
 
-	clientIP := strings.Split(ws.Request().RemoteAddr, ":")[0]
+	clientIP, _, err := net.SplitHostPort(ws.Request().RemoteAddr)
+	if err != nil {
+		fmt.Printf("Неудалось распарить ip адрес %s", clientIP)
+		return
+	}
+
 	fmt.Printf("Подключение клиента %s\n", clientIP)
 
 	s.MUConnected.Lock()
+
 	if _, ok := s.Connected[clientIP]; ok {
 		s.MUConnected.Unlock()
-		ws.Close()
 
 		fmt.Printf("Разрываем соединение для %s, у клиента уже есть активное соединение\n", clientIP)
 
