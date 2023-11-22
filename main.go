@@ -56,7 +56,7 @@ func main() {
 	http.Handle("/", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`
 
-		var webSocket = new WebSocket("ws://localhost:8080/ws", "hi"); 
+		var webSocket = new WebSocket("ws://localhost:8080/ws", "p1"); 
 		webSocket.onmessage = ev => {console.log(ev.data)}; 
 
 		// timeout для установки соединения 
@@ -97,8 +97,6 @@ func BigIntSender(ws *websocket.Conn, s *Singelton) {
 	s.Connected[clientIP] = struct{}{}
 	s.MUConnected.Unlock()
 
-	var message string
-
 	defer func() {
 		s.MUConnected.Lock()
 		delete(s.Connected, clientIP)
@@ -106,6 +104,8 @@ func BigIntSender(ws *websocket.Conn, s *Singelton) {
 
 		fmt.Printf("Разорвано основное соедние у клиента %s\n", clientIP)
 	}()
+
+	var message string
 
 	for {
 		if err := websocket.Message.Receive(ws, &message); err != nil {
